@@ -92,11 +92,19 @@ syncPkgs = []
 repoPkgCount = 0
 syncedPkgCount = 0
 
+# open file for storing Multi-Arch information
+multiarchfile = open('/tmp/multiarch-' + channel + '.txt', 'w')
+
 for pkg in pkgs.split('\n\n'):
   repoPkgCount += 1
+  sha1 = ''
+  multiarch = None
+
   for pkginfos in pkg.split('\n'):
     line = pkginfos.split(':')
-    if line[0] == 'Filename': 
+    if line[0] == 'Package':
+      pkgname = line[1].strip()
+    elif line[0] == 'Filename':
       filename = line[1].strip()
     elif line[0] == 'MD5sum':
       md5 = line[1].strip()
@@ -104,13 +112,23 @@ for pkg in pkgs.split('\n\n'):
       sha1 = line[1].strip()
     elif line[0] == 'SHA256':
       sha256 = line[1].strip()
+    elif line[0] == 'Version':
+      pkg_version = line[1].strip()
+    elif line[0] == 'Architecture':
+      arch = line[1].strip()
+    elif line[0] == 'Multi-Arch':
+      multiarch = line[1].strip()
 
   if not md5 in channelPkgs and not sha1 in channelPkgs and not sha256 in channelPkgs:
     syncPkgs.append(filename)
   else:
     syncedPkgCount += 1
 
+  if multiarch is not None:
+    multiarchfile.write("%s %s %s %s\n" % (pkgname, pkg_version, arch, multiarch))
+
 gzipfile.close()
+multiarchfile.close()
 
 print "INFO: Packages in repo: %d" % repoPkgCount
 print "INFO: Packages synced: %d" % syncedPkgCount
